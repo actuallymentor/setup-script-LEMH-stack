@@ -266,14 +266,9 @@ sudo service hhvm restart
 
 echo $servercheck > ~/servercheck.sh
 
-#write out current crontab
-#env EDITOR=nano crontab -e
-#crontab -l > mycron
-#echo new cron into cron file
-#echo "*/10 * * * * bash ~/servercheck.sh" >> mycron
-#install new cron file
-#crontab mycron
-#rm mycron
+# Create server check cron
+touch /etc/cron.d/servercheck
+echo "*/10 * * * * root bash ~/servercheck.sh" >> /etc/cron.d/servercheck
 
 service nginx restart
 mysql_secure_installation
