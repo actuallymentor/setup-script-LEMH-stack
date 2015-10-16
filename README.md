@@ -1,4 +1,6 @@
-# setup-script-LEMH-stack
+# Setup script for LEMH scack
+
+I refer to this as my supermegaukulele server. It's the fastest setup I know of so far.
 
 Powerful server setup with Nginx (compiled with mod_pagespeed), MariaDB, HHVM and a PHP5-FPM fallback.
 
