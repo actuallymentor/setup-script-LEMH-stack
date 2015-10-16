@@ -1,4 +1,4 @@
-# Setup script for LEMH scack
+# Setup script for LEMH stack
 
 I refer to this as my supermegaukulele server. It's the fastest setup I know of so far.
 
