@@ -200,18 +200,19 @@ gzip_types text/plain text/css text/xml application/xml application/javascript a
 ##################################################################
 ##################################################################
 
-# Do PPA stuff
-yes | sudo add-apt-repository ppa:nginx/stable && yes | sudo add-apt-repository -s ppa:nginx/stable && sudo apt-get update
+sudo apt-get update
 
 # Dependencies etc
-yes | sudo apt-get install build-essential python dpkg-dev zlib1g-dev libpcre3 libpcre3-dev unzip software-properties-common
+sudo apt-get install -y build-essential python dpkg-dev zlib1g-dev libpcre3 libpcre3-dev unzip software-properties-common
+
+# Do PPA stuff
+sudo add-apt-repository ppa:nginx/stable -y && sudo apt-get update
 
 # Nginx source
-cd ~
 mkdir -p ~/new/nginx_source/
 cd ~/new/nginx_source/
 apt-get source nginx
-yes | apt-get build-dep nginx
+sudo apt-get build-dep -y nginx
 
 # Pagespeed download
 cd ~
@@ -247,20 +248,19 @@ echo "$cache" > /usr/local/nginx/conf/cache.conf;
 echo "$gzip" > /usr/local/nginx/conf/gzip.conf;
 
 # Mariadb
-yes | sudo apt-get install software-properties-common
-yes | sudo apt-key adv --recv-keys --keyserver hkp://keyserver.ubuntu.com:80 0xcbcb082a1bb943db
-yes | sudo add-apt-repository 'deb http://mirror.i3d.net/pub/mariadb/repo/10.1/ubuntu vivid main'
-yes | sudo apt-get install mariadb-server
+sudo apt-key adv --recv-keys --keyserver hkp://keyserver.ubuntu.com:80 0xcbcb082a1bb943db
+sudo add-apt-repository  -y 'deb http://mirror.i3d.net/pub/mariadb/repo/10.1/ubuntu vivid main' && sudo apt-get update
+sudo apt-get install -y mariadb-server
 sudo service mysql start
 
 # PHP
-yes | sudo apt-get install php5-fpm php5-mysql php5-curl
+sudo apt-get install -y php5-fpm php5-mysql php5-curl
 
 # HHVM
 wget -O - http://dl.hhvm.com/conf/hhvm.gpg.key | sudo apt-key add -
 echo deb http://dl.hhvm.com/ubuntu vivid main | sudo tee /etc/apt/sources.list.d/hhvm.list
 sudo apt-get update
-yes | sudo apt-get install hhvm
+sudo apt-get install -y hhvm
 sudo /usr/share/hhvm/install_fastcgi.sh
 sudo service hhvm restart
 
