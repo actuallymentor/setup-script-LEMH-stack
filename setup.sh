@@ -1,10 +1,13 @@
 ########################## Variables #############################
+workerprocesses=$(grep processor /proc/cpuinfo | wc -l)
+workerconnections=$(ulimit -n)
+
 global_nginx_conf="
 user  www-data www-data;
-worker_processes  1;
+worker_processes  $workerprocesses;
 
 events {
-    worker_connections  1024;
+    worker_connections  $workerconnections;
 }
 
 
@@ -33,6 +36,9 @@ http {
     client_header_timeout 12;
     keepalive_timeout 15;
     send_timeout 10;
+
+    # Log off
+    access_log off;
 }
 "
 nginx_conf='
