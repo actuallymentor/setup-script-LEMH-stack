@@ -4,6 +4,8 @@ I refer to this as my supermegaukulele server. It's the fastest setup I know of 
 
 Powerful server setup with Nginx (compiled with mod_pagespeed), MariaDB, HHVM and a PHP5-FPM fallback.
 
+You work in Vagrant? https://github.com/actuallymentor/vagrant-smus
+
 What this script does:
 
 - Add nginx repository
