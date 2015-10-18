@@ -277,4 +277,3 @@ touch /etc/cron.d/servercheck
 echo "*/10 * * * * root bash ~/servercheck.sh" >> /etc/cron.d/servercheck
 
 service nginx restart
-mysql_secure_installation

@@ -22,6 +22,9 @@ What this script does:
 - Install PHP5-FPM
 - Download and install HHVM
 - Restart NginX
+
+## You still need to:
+
 - Run mysql_secure_installation
 
 ## Components
