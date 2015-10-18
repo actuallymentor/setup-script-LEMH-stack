@@ -257,7 +257,7 @@ echo "$gzip" > /usr/local/nginx/conf/gzip.conf;
 sudo apt-key adv --recv-keys --keyserver hkp://keyserver.ubuntu.com:80 0xcbcb082a1bb943db
 sudo add-apt-repository -y 'deb http://mirror.i3d.net/pub/mariadb/repo/10.1/ubuntu vivid main' && sudo apt-get update
 export DEBIAN_FRONTEND=noninteractive
-apt-get -q -y install mariadb-server
+sudo -E apt-get -q -y install mariadb-server
 sudo service mysql start
 
 # PHP
