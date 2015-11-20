@@ -1,3 +1,6 @@
+echo "This script is made for Ubuntu 15.10 64x"
+read -p "Press enter to get started"
+
 ########################## Variables #############################
 workerprocesses=$(grep processor /proc/cpuinfo | wc -l)
 workerconnections=$(ulimit -n)
