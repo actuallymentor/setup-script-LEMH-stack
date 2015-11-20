@@ -1,7 +1,4 @@
-echo "This script is made for Ubuntu 15.10 64x"
-read -p "Press enter to get started"
-
-########################## Variables #############################
+########################### Variables #############################
 workerprocesses=$(grep processor /proc/cpuinfo | wc -l)
 workerconnections=$(ulimit -n)
 
@@ -42,11 +39,6 @@ http {
 
     # Log off
     access_log off;
-
-    # Security stuff
-    # Don't send Nginx version
-    server_tokens off;
-
 }
 "
 nginx_conf='
@@ -112,7 +104,7 @@ if [ ! -f $PIDnginx ]; then
 fi
 
 if [ ! -f $PIDfpm ]; then
-	echo "$(date) Starting php5-fpm..."
+    echo "$(date) Starting php5-fpm..."
         echo "$(date) Starting php5-fpm..." >> ~/server.log
         service php5-fpm start
 fi
@@ -232,7 +224,7 @@ sudo apt-get build-dep -y nginx
 cd ~
 mkdir -p ~/new/ngx_pagespeed/
 cd ~/new/ngx_pagespeed/
-NPS_VERSION=1.9.32.10
+NPS_VERSION=1.9.32.6
 wget https://github.com/pagespeed/ngx_pagespeed/archive/release-${NPS_VERSION}-beta.zip
 unzip release-${NPS_VERSION}-beta.zip
 
