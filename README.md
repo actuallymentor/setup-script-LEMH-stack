@@ -1,10 +1,5 @@
-# Setup script for LEMH stack
+# Setup script for LEMP with MariaDB, PHP7 and nginx Pagespeed module
 
-I refer to this as my supermegaukulele server. It's the fastest setup I know of so far.
-
-Powerful server setup with Nginx (compiled with mod_pagespeed), MariaDB, HHVM and a PHP5-FPM fallback.
-
-You work in Vagrant? https://github.com/actuallymentor/vagrant-smus
 
 What this script does:
 
@@ -17,10 +12,9 @@ What this script does:
 - Download init scripts (credit JasonGiedymin)
 - Add global nginx config
 - Add default server config
-- Add config files for HHVM fallback, mod_pagespeed, cache and gzip
 - Install MariaDB (MySQL dropin)
-- Install PHP5-FPM
-- Download and install HHVM
+- Install PHP7-FPM
+- Configure auto security updates
 - Restart NginX
 
 ## You still need to:
@@ -41,10 +35,6 @@ A module made by google that automatically optimizes your code for fast delivery
 
 Faster than MySQL database server, but works the same.
 
-## HHVM
+## PHP7-FPM
 
-Runs PHP code superfast.
-
-## PHP5-FPM
-
-Backup for in case HHVM crashes, which it does sometimes.
+New php version.
