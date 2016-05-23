@@ -74,70 +74,35 @@ server {
         root /usr/share/nginx/html;
     }
 }'
-hhvmwithfallback='
-location ~ \.(hh|php)$ {
-    proxy_intercept_errors on;
-    error_page 500 501 502 503 = @fallback;
- 
-    fastcgi_keep_conn on;
- 
-    fastcgi_pass   127.0.0.1:9000;
-    fastcgi_index  index.php;
-    fastcgi_param  SCRIPT_FILENAME $document_root$fastcgi_script_name;
-    include        fastcgi_params;
-}
-'
-servercheck='
-PIDhhvm=/var/run/hhvm/pid
-PIDnginx=/var/run/nginx.pid
-PIDfpm=/var/run/php5-fpm.pid
-if [ ! -f $PIDhhvm ]; then
-        echo "$(date) Starting hhvm..."
-        echo "$(date) Starting hhvm..." >> ~/server.log
-        service hhvm start
-fi
-
-if [ ! -f $PIDnginx ]; then
-        echo "$(date) Starting nginx..."
-        echo "$(date) Starting nginx..." >> ~/server.log
-        service nginx start
-fi
-
-if [ ! -f $PIDfpm ]; then
-    echo "$(date) Starting php5-fpm..."
-        echo "$(date) Starting php5-fpm..." >> ~/server.log
-        service php5-fpm start
-fi
-'
 mod_pagespeed='
 pagespeed on;
 pagespeed RewriteLevel PassThrough;
 pagespeed FetchHttps enable;
 pagespeed EnableFilters add_head;
-pagespeed EnableFilters combine_css;
-pagespeed EnableFilters rewrite_css;
-pagespeed EnableFilters fallback_rewrite_css_urls;
-pagespeed EnableFilters rewrite_style_attributes;
-pagespeed EnableFilters rewrite_style_attributes_with_url;
-pagespeed EnableFilters flatten_css_imports;
-pagespeed EnableFilters inline_css;
-pagespeed EnableFilters inline_google_font_css;
-pagespeed EnableFilters prioritize_critical_css;
+# pagespeed EnableFilters combine_css;
+# pagespeed EnableFilters rewrite_css;
+# pagespeed EnableFilters fallback_rewrite_css_urls;
+# pagespeed EnableFilters rewrite_style_attributes;
+# pagespeed EnableFilters rewrite_style_attributes_with_url;
+# pagespeed EnableFilters flatten_css_imports;
+# pagespeed EnableFilters inline_css;
+# pagespeed EnableFilters inline_google_font_css;
+# pagespeed EnableFilters prioritize_critical_css;
 
 pagespeed CssInlineMaxBytes 25600;
 pagespeed JsInlineMaxBytes 8192;
 pagespeed ImageRecompressionQuality 75;
 pagespeed JpegRecompressionQualityForSmallScreens 65;
 
-pagespeed EnableFilters rewrite_javascript;
-pagespeed EnableFilters rewrite_javascript_external;
-pagespeed EnableFilters rewrite_javascript_inline;
-pagespeed EnableFilters combine_javascript;
-pagespeed EnableFilters canonicalize_javascript_libraries;
-pagespeed EnableFilters inline_javascript;
-pagespeed EnableFilters defer_javascript;
+# pagespeed EnableFilters rewrite_javascript;
+# pagespeed EnableFilters rewrite_javascript_external;
+# pagespeed EnableFilters rewrite_javascript_inline;
+# pagespeed EnableFilters combine_javascript;
+# pagespeed EnableFilters canonicalize_javascript_libraries;
+# pagespeed EnableFilters inline_javascript;
+# pagespeed EnableFilters defer_javascript;
 pagespeed EnableFilters dedup_inlined_images;
-pagespeed EnableFilters lazyload_images;
+# pagespeed EnableFilters lazyload_images;
 
 pagespeed EnableFilters local_storage_cache;
 pagespeed EnableFilters rewrite_images;
@@ -197,6 +162,20 @@ gzip_http_version 1.1;
 gzip_types text/plain text/css text/xml application/xml application/javascript application/x-javascript text/javascript;
 '
 
+#Auto security update rules
+updaterules='echo "**************" >> /var/log/apt-security-updates
+date >> /var/log/apt-security-updates
+aptitude update >> /var/log/apt-security-updates
+aptitude safe-upgrade -o Aptitude::Delete-Unused=false --assume-yes --target-release `lsb_release -cs`-security >> /var/log/apt-security-updates
+echo "Security updates (if any) installed"'
+rotaterules='/var/log/apt-security-updates {
+        rotate 2
+        weekly
+        size 250k
+        compress
+        notifempty
+}'
+
 ##################################################################
 ##################################################################
 ##################################################################
@@ -209,7 +188,7 @@ gzip_types text/plain text/css text/xml application/xml application/javascript a
 sudo apt-get update
 
 # Dependencies etc
-sudo apt-get install -y build-essential python dpkg-dev zlib1g-dev libpcre3 libpcre3-dev unzip software-properties-common
+sudo apt-get install -y build-essential python ufw dpkg-dev zlib1g-dev libpcre3 libpcre3-dev unzip software-properties-common
 
 # Do PPA stuff
 sudo add-apt-repository ppa:nginx/stable -y && sudo apt-get update
@@ -224,7 +203,7 @@ sudo apt-get build-dep -y nginx
 cd ~
 mkdir -p ~/new/ngx_pagespeed/
 cd ~/new/ngx_pagespeed/
-NPS_VERSION=1.9.32.6
+NPS_VERSION=1.11.33.2
 wget https://github.com/pagespeed/ngx_pagespeed/archive/release-${NPS_VERSION}-beta.zip
 unzip release-${NPS_VERSION}-beta.zip
 
@@ -248,33 +227,34 @@ echo "$global_nginx_conf" > /usr/local/nginx/conf/nginx.conf;
 mkdir /usr/local/nginx/conf/conf.d/
 touch /usr/local/nginx/conf/conf.d/default;
 echo "$nginx_conf" > /usr/local/nginx/conf/conf.d/default;
-echo "$hhvmwithfallback" > /usr/local/nginx/conf/hhvmwithfallback.conf;
 echo "$mod_pagespeed" > /usr/local/nginx/conf/mod_pagespeed.conf;
 echo "$cache" > /usr/local/nginx/conf/cache.conf;
 echo "$gzip" > /usr/local/nginx/conf/gzip.conf;
 
 # Mariadb
-sudo apt-key adv --recv-keys --keyserver hkp://keyserver.ubuntu.com:80 0xcbcb082a1bb943db
-sudo add-apt-repository -y 'deb http://mirror.i3d.net/pub/mariadb/repo/10.1/ubuntu vivid main' && sudo apt-get update
-export DEBIAN_FRONTEND=noninteractive
-sudo -E apt-get -q -y install mariadb-server
+sudo apt-get install software-properties-common
+sudo apt-key adv --recv-keys --keyserver hkp://keyserver.ubuntu.com:80 0xF1656F24C74CD1D8
+sudo add-apt-repository 'deb [arch=amd64,i386] http://mirrors.supportex.net/mariadb/repo/10.1/ubuntu xenial main'
+sudo apt-get update
+sudo apt-get install mariadb-server
 sudo service mysql start
 
 # PHP
 sudo apt-get install -y php5-fpm php5-mysql php5-curl
 
-# HHVM
-wget -O - http://dl.hhvm.com/conf/hhvm.gpg.key | sudo apt-key add -
-echo deb http://dl.hhvm.com/ubuntu vivid main | sudo tee /etc/apt/sources.list.d/hhvm.list
-sudo apt-get update
-sudo apt-get install -y hhvm
-sudo /usr/share/hhvm/install_fastcgi.sh
-sudo service hhvm restart
+# Firewall
+ufw allow ssh
+ufw allow http
+ufw allow https
+yes | ufw enable
 
-echo $servercheck > ~/servercheck.sh
+# auto security updates
+touch /etc/cron.daily/apt-security-updates
+touch /etc/logrotate.d/apt-security-updates
+echo $updaterules > /etc/cron.daily/apt-security-updates
+echo $rotaterules > /etc/logrotate.d/apt-security-updates
+sudo chmod +x /etc/cron.daily/apt-security-updates
 
 # Create server check cron
-touch /etc/cron.d/servercheck
-echo "*/10 * * * * root bash ~/servercheck.sh" >> /etc/cron.d/servercheck
 
 service nginx restart
