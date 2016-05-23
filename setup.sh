@@ -43,26 +43,23 @@ http {
 "
 nginx_conf='
 server {
-        listen 80;
+        listen 80 default_server;
+        listen [::]:80 default_server;
  
-        root /usr/local/nginx/html;
+        root /var/www/localhost;
         index index.html index.htm index.php;
  
         server_name localhost;
         client_max_body_size 32M;
         large_client_header_buffers 4 16k;
      
-        include /usr/local/nginx/conf/hhvmwithfallback.conf;
         include /usr/local/nginx/conf/mod_pagespeed.conf;
         include /usr/local/nginx/conf/cache.conf;
         include /usr/local/nginx/conf/gzip.conf;
 
-        location @fallback {
-        fastcgi_pass unix:/var/run/php5-fpm.sock;
-        fastcgi_index index.php;
-        include /usr/local/nginx/conf/fastcgi_params;
-        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
-        fastcgi_read_timeout 1500;
+        location ~ \.php$ {
+            include snippets/fastcgi-php.conf;
+            fastcgi_pass unix:/run/php/php7.0-fpm.sock;
         }
  
         location / {
@@ -71,7 +68,6 @@ server {
         error_page 404 /404.html;
         error_page 500 502 503 504 /50x.html;
         location = /50x.html {
-        root /usr/share/nginx/html;
     }
 }'
 mod_pagespeed='
@@ -240,7 +236,13 @@ sudo apt-get install mariadb-server
 sudo service mysql start
 
 # PHP
-sudo apt-get install -y php5-fpm php5-mysql php5-curl
+sudo apt-get install -y php-fpm php-mysql
+sed -i 's/;cgi.fix_pathinfo=1/cgi.fix_pathinfo=0/g' /etc/php/7.0/fpm/php.ini
+
+# Default contents
+mkdir /var/www/
+mkdir /var/www/localhost
+echo '<?php phpinfo(); ?>' > /var/www/localhost/index.php
 
 # Firewall
 ufw allow ssh
@@ -254,6 +256,7 @@ touch /etc/logrotate.d/apt-security-updates
 echo $updaterules > /etc/cron.daily/apt-security-updates
 echo $rotaterules > /etc/logrotate.d/apt-security-updates
 sudo chmod +x /etc/cron.daily/apt-security-updates
+
 
 # Create server check cron
 
