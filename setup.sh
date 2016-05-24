@@ -58,7 +58,7 @@ server {
     include /etc/nginx/conf/gzip.conf;
 
     location ~ \.php$ {
-        include snippets/fastcgi-php.conf;
+        include fastcgi.conf;
         fastcgi_pass unix:/run/php/php7.0-fpm.sock;
     }
 
@@ -297,7 +297,7 @@ mkdir /etc/nginx/conf
 mkdir /etc/nginx/sites
 echo "$global_nginx_conf" > /etc/nginx/nginx.conf;
 echo "$nginx_conf" > /etc/nginx/sites/default;
-echo "$mod_pagespeed" > /etc/conf/mod_pagespeed.conf;
+echo "$mod_pagespeed" > /etc/nginx/conf/mod_pagespeed.conf;
 echo "$cache" > /etc/nginx/conf/cache.conf;
 echo "$gzipconf" > /etc/nginx/conf/gzip.conf;
 
