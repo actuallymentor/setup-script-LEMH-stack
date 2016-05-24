@@ -12,17 +12,17 @@ events {
 
 
 http {
-    include       /usr/local/nginx/conf/mime.types;
+    include       /etc/nginx/mime.types;
     default_type  application/octet-stream;
 
     sendfile        on;
     #tcp_nopush     on;
 
     # Gzip configuration
-    include /usr/local/nginx/conf/gzip.conf;
+    include /etc/nginx/conf/gzip.conf;
 
     # Add my servers
-    include /usr/local/nginx/conf/conf.d/*;
+    include /etc/nginx/sites/*;
 
     # Buffers
     client_body_buffer_size 10K;
@@ -43,31 +43,31 @@ http {
 "
 nginx_conf='
 server {
-        listen 80 default_server;
-        listen [::]:80 default_server;
- 
-        root /var/www/localhost;
-        index index.html index.htm index.php;
- 
-        server_name localhost;
-        client_max_body_size 32M;
-        large_client_header_buffers 4 16k;
-     
-        include /usr/local/nginx/conf/mod_pagespeed.conf;
-        include /usr/local/nginx/conf/cache.conf;
-        include /usr/local/nginx/conf/gzip.conf;
+    listen 80 default_server;
+    listen [::]:80 default_server;
 
-        location ~ \.php$ {
-            include snippets/fastcgi-php.conf;
-            fastcgi_pass unix:/run/php/php7.0-fpm.sock;
-        }
- 
-        location / {
-                try_files $uri $uri/ /index.php;
-        }
-        error_page 404 /404.html;
-        error_page 500 502 503 504 /50x.html;
-        location = /50x.html {
+    root /var/www/localhost;
+    index index.html index.htm index.php;
+
+    server_name localhost;
+    client_max_body_size 32M;
+    large_client_header_buffers 4 16k;
+
+    include /etc/nginx/conf/mod_pagespeed.conf;
+    include /etc/nginx/conf/cache.conf;
+    include /etc/nginx/conf/gzip.conf;
+
+    location ~ \.php$ {
+        include snippets/fastcgi-php.conf;
+        fastcgi_pass unix:/run/php/php7.0-fpm.sock;
+    }
+
+    location / {
+        try_files $uri $uri/ /index.php;
+    }
+    error_page 404 /404.html;
+    error_page 500 502 503 504 /50x.html;
+    location = /50x.html {
     }
 }'
 mod_pagespeed='
@@ -144,10 +144,10 @@ pagespeed EnableCachePurge on;
 '
 cache='
 location ~* .(jpg|jpeg|png|gif|ico|css|js)$ {
-expires 365d;
+    expires 365d;
 }
 '
-gzip='
+gzipconf='
 gzip on;
 gzip_disable "msie6";
 gzip_vary on;
@@ -165,12 +165,13 @@ aptitude update >> /var/log/apt-security-updates
 aptitude safe-upgrade -o Aptitude::Delete-Unused=false --assume-yes --target-release `lsb_release -cs`-security >> /var/log/apt-security-updates
 echo "Security updates (if any) installed"'
 rotaterules='/var/log/apt-security-updates {
-        rotate 2
-        weekly
-        size 250k
-        compress
-        notifempty
+    rotate 2
+    weekly
+    size 250k
+    compress
+    notifempty
 }'
+
 
 ##################################################################
 ##################################################################
@@ -187,52 +188,124 @@ sudo apt-get update
 sudo apt-get install -y build-essential python ufw dpkg-dev zlib1g-dev libpcre3 libpcre3-dev unzip software-properties-common
 
 # Do PPA stuff
-sudo add-apt-repository ppa:nginx/stable -y && sudo apt-get update
+# sudo add-apt-repository ppa:nginx/stable -y && sudo apt-get update
 
 # Nginx source
-mkdir -p ~/new/nginx_source/
-cd ~/new/nginx_source/
-apt-get source nginx
-sudo apt-get build-dep -y nginx
+# mkdir -p ~/new/nginx_source/
+# cd ~/new/nginx_source/
+# apt-get source nginx
+# sudo apt-get build-dep -y nginx
 
 # Pagespeed download
-cd ~
-mkdir -p ~/new/ngx_pagespeed/
-cd ~/new/ngx_pagespeed/
+cd
 NPS_VERSION=1.11.33.2
-wget https://github.com/pagespeed/ngx_pagespeed/archive/release-${NPS_VERSION}-beta.zip
+wget https://github.com/pagespeed/ngx_pagespeed/archive/release-${NPS_VERSION}-beta.zip -O release-${NPS_VERSION}-beta.zip
 unzip release-${NPS_VERSION}-beta.zip
-
 cd ngx_pagespeed-release-${NPS_VERSION}-beta/
 wget https://dl.google.com/dl/page-speed/psol/${NPS_VERSION}.tar.gz
-tar -xzf ${NPS_VERSION}.tar.gz
+tar -xzvf ${NPS_VERSION}.tar.gz  # extracts to psol/
+
+OPENSSL_VERSION='1.0.1s'
+wget -qO - https://www.openssl.org/source/openssl-${OPENSSL_VERSION}.tar.gz | tar xzf  - -C /tmp
+cd
+# check http://nginx.org/en/download.html for the latest version
+NGINX_VERSION=1.10.0
+wget http://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz
+tar -xvzf nginx-${NGINX_VERSION}.tar.gz
+cd nginx-${NGINX_VERSION}/
+./configure \
+--add-module=$HOME/ngx_pagespeed-release-${NPS_VERSION}-beta ${PS_NGX_EXTRA_FLAGS} \
+--prefix=/etc/nginx  \
+--sbin-path=/usr/sbin/nginx  \
+--conf-path=/etc/nginx/nginx.conf  \
+--error-log-path=/var/log/nginx/error.log \
+--http-log-path=/var/log/nginx/access.log \
+--pid-path=/var/run/nginx.pid \
+--lock-path=/var/run/nginx.lock \
+--http-client-body-temp-path=/var/cache/nginx/client_temp \
+--http-proxy-temp-path=/var/cache/nginx/proxy_temp \
+--http-fastcgi-temp-path=/var/cache/nginx/fastcgi_temp  \
+--http-uwsgi-temp-path=/var/cache/nginx/uwsgi_temp  \
+--http-scgi-temp-path=/var/cache/nginx/scgi_temp  \
+--user=www-data  \
+--group=www-data  \
+--with-http_ssl_module  \
+--with-http_realip_module  \
+--with-http_addition_module  \
+--with-http_sub_module  \
+--with-http_dav_module  \
+--with-http_flv_module  \
+--with-http_mp4_module  \
+--with-http_gunzip_module  \
+--with-http_gzip_static_module  \
+--with-http_random_index_module  \
+--with-http_secure_link_module \
+--with-http_stub_status_module  \
+--with-http_auth_request_module  \
+--without-http_autoindex_module \
+--without-http_ssi_module \
+--with-threads  \
+--with-stream  \
+--with-stream_ssl_module  \
+--with-mail  \
+--with-mail_ssl_module  \
+--with-file-aio  \
+--with-http_v2_module \
+--with-cc-opt='-g -O2 -fstack-protector --param=ssp-buffer-size=4 -Wformat -Werror=format-security -Wp,-D_FORTIFY_SOURCE=2'  \
+--with-ld-opt='-Wl,-Bsymbolic-functions -Wl,-z,relro -Wl,--as-needed' \
+--with-ipv6 \
+--with-pcre-jit \
+--with-openssl=/tmp/openssl-${OPENSSL_VERSION}
+make
+sudo make install
+
+mkdir /var/log/ngx_pagespeed
+mkdir /var/cache/nginx/
+mkdir /var/cache/nginx/client_temp
+git clone https://github.com/Fleshgrinder/nginx-sysvinit-script.git
+cd nginx-sysvinit-script
+make
+
+# Pagespeed download
+# cd
+# mkdir -p ~/new/ngx_pagespeed/
+# cd ~/new/ngx_pagespeed/
+# NPS_VERSION=1.11.33.2
+# wget https://github.com/pagespeed/ngx_pagespeed/archive/release-${NPS_VERSION}-beta.zip
+# unzip release-${NPS_VERSION}-beta.zip
+
+# cd ngx_pagespeed-release-${NPS_VERSION}-beta/
+# wget https://dl.google.com/dl/page-speed/psol/${NPS_VERSION}.tar.gz
+# tar -xzf ${NPS_VERSION}.tar.gz
 
 ########## Add rules here
-cd ~/new/nginx_source/nginx-*/
-./configure --add-module=$HOME/new/ngx_pagespeed/ngx_pagespeed-release-${NPS_VERSION}-beta
-make
-make install
+# cd ~/new/nginx_source/nginx-*/
+# ./configure --add-module=$HOME/new/ngx_pagespeed/ngx_pagespeed-release-${NPS_VERSION}-beta
+# make
+# make install
+
+
 # init script
-sudo wget https://raw.githubusercontent.com/JasonGiedymin/nginx-init-ubuntu/master/nginx -O /etc/init.d/nginx
-sudo chmod +x /etc/init.d/nginx
+# sudo wget https://raw.githubusercontent.com/JasonGiedymin/nginx-init-ubuntu/master/nginx -O /etc/init.d/nginx
+# sudo chmod +x /etc/init.d/nginx
+
 
 
 sudo update-rc.d -f nginx defaults
 
-echo "$global_nginx_conf" > /usr/local/nginx/conf/nginx.conf;
-mkdir /usr/local/nginx/conf/conf.d/
-touch /usr/local/nginx/conf/conf.d/default;
-echo "$nginx_conf" > /usr/local/nginx/conf/conf.d/default;
-echo "$mod_pagespeed" > /usr/local/nginx/conf/mod_pagespeed.conf;
-echo "$cache" > /usr/local/nginx/conf/cache.conf;
-echo "$gzip" > /usr/local/nginx/conf/gzip.conf;
+mkdir /etc/nginx/conf
+mkdir /etc/nginx/sites
+echo "$global_nginx_conf" > /etc/nginx/nginx.conf;
+echo "$nginx_conf" > /etc/nginx/sites/default;
+echo "$mod_pagespeed" > /etc/conf/mod_pagespeed.conf;
+echo "$cache" > /etc/nginx/conf/cache.conf;
+echo "$gzipconf" > /etc/nginx/conf/gzip.conf;
 
 # Mariadb
-sudo apt-get install software-properties-common
 sudo apt-key adv --recv-keys --keyserver hkp://keyserver.ubuntu.com:80 0xF1656F24C74CD1D8
 sudo add-apt-repository 'deb [arch=amd64,i386] http://mirrors.supportex.net/mariadb/repo/10.1/ubuntu xenial main'
 sudo apt-get update
-sudo apt-get install mariadb-server
+sudo apt-get install -y mariadb-server
 sudo service mysql start
 
 # PHP
