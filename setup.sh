@@ -197,6 +197,7 @@ rotaterules='/var/log/apt-security-updates {
 ##################################################################
 
 sudo apt-get update
+sudo apt-get -y upgrade
 
 # Dependencies etc
 sudo apt-get install -y build-essential python ufw dpkg-dev zlib1g-dev libpcre3 libpcre3-dev unzip software-properties-common
@@ -346,7 +347,8 @@ phpenmod mcrypt
 phpenmod mbstring
 service php7.0-fpm restart
 mkdir /var/www/localhost/adminer
-wget -P /var/www/localhost/adminer -O index.php https://www.adminer.org/static/download/4.2.4/adminer-4.2.4-mysql.php
+cd /var/www/localhost/adminer
+wget -O index.php https://www.adminer.org/static/download/4.2.4/adminer-4.2.4-mysql.php
 
 
 # Firewall
