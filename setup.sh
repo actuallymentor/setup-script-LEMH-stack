@@ -12,8 +12,10 @@ events {
 
 
 http {
+    fastcgi_cache_path /var/nginx_cache/fcgi levels=1:2 keys_zone=microcache:10m max_size=1024m inactive=1h;
     include       /etc/nginx/mime.types;
     default_type  application/octet-stream;
+    server_tokens off;
 
     sendfile        on;
     #tcp_nopush     on;
@@ -60,12 +62,24 @@ server {
     location ~ \.php$ {
         include fastcgi.conf;
         fastcgi_pass unix:/run/php/php7.0-fpm.sock;
+
+
+        try_files $uri =404;
+        fastcgi_split_path_info ^(.+\.php)(/.+)$;
+        fastcgi_cache  microcache;
+        fastcgi_cache_key $scheme$host$request_uri$request_method;
+        fastcgi_cache_valid 200 301 302 30s;
+        fastcgi_cache_use_stale updating error timeout invalid_header http_500;
+        fastcgi_pass_header Set-Cookie;
+        fastcgi_pass_header Cookie;
+        fastcgi_ignore_headers Cache-Control Expires Set-Cookie;
+        fastcgi_index index.php;
     }
 
     location / {
         try_files $uri $uri/ /index.php;
     }
-    error_page 404 /404.html;
+    error_page 401 403 404 /404.html;
     error_page 500 502 503 504 /50x.html;
     location = /50x.html {
     }
@@ -305,17 +319,35 @@ echo "$gzipconf" > /etc/nginx/conf/gzip.conf;
 sudo apt-key adv --recv-keys --keyserver hkp://keyserver.ubuntu.com:80 0xF1656F24C74CD1D8
 sudo add-apt-repository 'deb [arch=amd64,i386] http://mirrors.supportex.net/mariadb/repo/10.1/ubuntu xenial main'
 sudo apt-get update
-sudo apt-get install -y mariadb-server
+export DEBIAN_FRONTEND=noninteractive
+sudo debconf-set-selections <<< 'mariadb-server-10.1 mysql-server/root_password password root'
+sudo debconf-set-selections <<< 'mariadb-server-10.1 mysql-server/root_password_again password root'
+sudo apt-get install -y mariadb-server > /dev/null
 sudo service mysql start
 
 # PHP
 sudo apt-get install -y php-fpm php-mysql
+
+# FastCGI microcaching
 sed -i 's/;cgi.fix_pathinfo=1/cgi.fix_pathinfo=0/g' /etc/php/7.0/fpm/php.ini
+sed -i "s/^;listen.owner = www-data/listen.owner = www-data/g" /etc/php/7.0/fpm/pool.d/www.conf
+sed -i "s/^;listen.group = www-data/listen.group = www-data/g" /etc/php/7.0/fpm/pool.d/www.conf
+sed -i "s/^;listen.mode = 0660/listen.mode = 0660/" /etc/php/7.0/fpm/pool.d/www.conf
+mkdir /var/nginx_cache
 
 # Default contents
 mkdir /var/www/
 mkdir /var/www/localhost
 echo '<?php phpinfo(); ?>' > /var/www/localhost/index.php
+
+# adminer
+apt-get install -y php-mcrypt php-mbstring
+phpenmod mcrypt
+phpenmod mbstring
+service php7.0-fpm restart
+mkdir /var/www/localhost/adminer
+wget -P /var/www/localhost/adminer -O index.php https://www.adminer.org/static/download/4.2.4/adminer-4.2.4-mysql.php
+
 
 # Firewall
 ufw allow ssh
