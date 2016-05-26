@@ -2,6 +2,46 @@
 workerprocesses=$(grep processor /proc/cpuinfo | wc -l)
 workerconnections=$(ulimit -n)
 
+fastcgicache_global='fastcgi_cache_path /var/nginx_cache/fcgi levels=1:2 keys_zone=microcache:100m inactive=60m;
+fastcgi_cache_key "$scheme$request_method$host$request_uri";
+fastcgi_cache_use_stale updating error timeout invalid_header http_500;
+fastcgi_ignore_headers Cache-Control Expires Set-Cookie;'
+
+fastcgicache='set $skip_cache 0;
+
+# POST requests and urls with a query string should always go to PHP
+if ($request_method = POST) {
+    set $skip_cache 1;
+}   
+if ($query_string != "") {
+    set $skip_cache 1;
+}   
+
+# Dont cache uris containing the following segments
+if ($request_uri ~* "/wp-admin/|/xmlrpc.php|wp-.*.php|/feed/|index.php|sitemap(_index)?.xml") {
+    set $skip_cache 1;
+}   
+
+# Dont use the cache for logged in users or recent commenters
+if ($http_cookie ~* "comment_author|wordpress_[a-f0-9]+|wp-postpass|wordpress_no_cache|wordpress_logged_in") {
+    set $skip_cache 1;
+}
+
+location ~ \.php$ {
+    include fastcgi.conf;
+    fastcgi_pass unix:/run/php/php7.0-fpm.sock;
+
+    try_files $uri =404;
+    fastcgi_split_path_info ^(.+\.php)(/.+)$;
+    
+    fastcgi_cache_bypass $skip_cache;
+    fastcgi_no_cache $skip_cache;
+
+    fastcgi_cache microcache;
+    fastcgi_cache_valid  60m;
+
+}'
+
 global_nginx_conf="
 user  www-data www-data;
 worker_processes  $workerprocesses;
@@ -12,7 +52,6 @@ events {
 
 
 http {
-    fastcgi_cache_path /var/nginx_cache/fcgi levels=1:2 keys_zone=microcache:10m max_size=1024m inactive=1h;
     include       /etc/nginx/mime.types;
     default_type  application/octet-stream;
     server_tokens off;
@@ -22,6 +61,9 @@ http {
 
     # Gzip configuration
     include /etc/nginx/conf/gzip.conf;
+
+    #PHP and FastCGI cache
+    include /etc/nginx/conf/fastcgicache_global.conf;
 
     # Add my servers
     include /etc/nginx/sites/*;
@@ -59,22 +101,8 @@ server {
     include /etc/nginx/conf/cache.conf;
     include /etc/nginx/conf/gzip.conf;
 
-    location ~ \.php$ {
-        include fastcgi.conf;
-        fastcgi_pass unix:/run/php/php7.0-fpm.sock;
-
-
-        try_files $uri =404;
-        fastcgi_split_path_info ^(.+\.php)(/.+)$;
-        fastcgi_cache  microcache;
-        fastcgi_cache_key $scheme$host$request_uri$request_method;
-        fastcgi_cache_valid 200 301 302 30s;
-        fastcgi_cache_use_stale updating error timeout invalid_header http_500;
-        fastcgi_pass_header Set-Cookie;
-        fastcgi_pass_header Cookie;
-        fastcgi_ignore_headers Cache-Control Expires Set-Cookie;
-        fastcgi_index index.php;
-    }
+    # PHP and fastcgicache
+    include /etc/nginx/conf/fastcgicache.conf;
 
     location / {
         try_files $uri $uri/ /index.php;
@@ -202,14 +230,6 @@ sudo apt-get -y upgrade
 # Dependencies etc
 sudo apt-get install -y build-essential python ufw dpkg-dev zlib1g-dev libpcre3 libpcre3-dev unzip software-properties-common
 
-# Do PPA stuff
-# sudo add-apt-repository ppa:nginx/stable -y && sudo apt-get update
-
-# Nginx source
-# mkdir -p ~/new/nginx_source/
-# cd ~/new/nginx_source/
-# apt-get source nginx
-# sudo apt-get build-dep -y nginx
 
 # Pagespeed download
 cd
@@ -281,40 +301,17 @@ git clone https://github.com/Fleshgrinder/nginx-sysvinit-script.git
 cd nginx-sysvinit-script
 make
 
-# Pagespeed download
-# cd
-# mkdir -p ~/new/ngx_pagespeed/
-# cd ~/new/ngx_pagespeed/
-# NPS_VERSION=1.11.33.2
-# wget https://github.com/pagespeed/ngx_pagespeed/archive/release-${NPS_VERSION}-beta.zip
-# unzip release-${NPS_VERSION}-beta.zip
-
-# cd ngx_pagespeed-release-${NPS_VERSION}-beta/
-# wget https://dl.google.com/dl/page-speed/psol/${NPS_VERSION}.tar.gz
-# tar -xzf ${NPS_VERSION}.tar.gz
-
-########## Add rules here
-# cd ~/new/nginx_source/nginx-*/
-# ./configure --add-module=$HOME/new/ngx_pagespeed/ngx_pagespeed-release-${NPS_VERSION}-beta
-# make
-# make install
-
-
-# init script
-# sudo wget https://raw.githubusercontent.com/JasonGiedymin/nginx-init-ubuntu/master/nginx -O /etc/init.d/nginx
-# sudo chmod +x /etc/init.d/nginx
-
-
-
 sudo update-rc.d -f nginx defaults
 
 mkdir /etc/nginx/conf
 mkdir /etc/nginx/sites
 echo "$global_nginx_conf" > /etc/nginx/nginx.conf;
+echo "$fastcgicache_global" > /etc/nginx/conf/fastcgicache_global.conf
 echo "$nginx_conf" > /etc/nginx/sites/default;
 echo "$mod_pagespeed" > /etc/nginx/conf/mod_pagespeed.conf;
 echo "$cache" > /etc/nginx/conf/cache.conf;
 echo "$gzipconf" > /etc/nginx/conf/gzip.conf;
+echo "$fastcgicache" > /etc/nginx/conf/fastcgicache.conf
 
 # Mariadb
 sudo apt-key adv --recv-keys --keyserver hkp://keyserver.ubuntu.com:80 0xF1656F24C74CD1D8
@@ -341,10 +338,14 @@ mkdir /var/www/
 mkdir /var/www/localhost
 echo '<?php phpinfo(); ?>' > /var/www/localhost/index.php
 
-# adminer
-apt-get install -y php-mcrypt php-mbstring
+# adminer and sendy modules
+apt-get install -y php-mcrypt php-mbstring php7.0-curl php7.0-xml
 phpenmod mcrypt
 phpenmod mbstring
+phpenmod curl
+phpenmod xml
+phpenmod xmlreader
+phpenmod simplexml
 service php7.0-fpm restart
 mkdir /var/www/localhost/adminer
 cd /var/www/localhost/adminer
