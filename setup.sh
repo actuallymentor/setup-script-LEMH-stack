@@ -339,13 +339,14 @@ mkdir /var/www/localhost
 echo '<?php phpinfo(); ?>' > /var/www/localhost/index.php
 
 # adminer and sendy modules
-apt-get install -y php-mcrypt php-mbstring php7.0-curl php7.0-xml
+apt-get install -y php-mcrypt php-mbstring php7.0-curl php7.0-xml php7.0-gd
 phpenmod mcrypt
 phpenmod mbstring
 phpenmod curl
 phpenmod xml
 phpenmod xmlreader
 phpenmod simplexml
+phpenmod gd
 service php7.0-fpm restart
 mkdir /var/www/localhost/adminer
 cd /var/www/localhost/adminer
