@@ -20,6 +20,7 @@ What this script does:
 ## You still need to:
 
 - Run mysql_secure_installation
+- Enable caching in /etc/nginx/conf/fastcgicache.conf ( change set skip cache to 0 )
 
 ## Components
 

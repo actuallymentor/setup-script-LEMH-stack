@@ -7,7 +7,7 @@ fastcgi_cache_key "$scheme$request_method$host$request_uri";
 fastcgi_cache_use_stale updating error timeout invalid_header http_500;
 fastcgi_ignore_headers Cache-Control Expires Set-Cookie;'
 
-fastcgicache='set $skip_cache 0;
+fastcgicache='set $skip_cache 1;
 
 # POST requests and urls with a query string should always go to PHP
 if ($request_method = POST) {
