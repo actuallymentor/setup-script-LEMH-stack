@@ -1,3 +1,8 @@
+# DEPRECATED
+
+Use the new [PHP7 Setup Script](https://github.com/actuallymentor/Setup-Script-Nginx-Pagespeed-PHP7-Mariadb) instead. It is equally powerful and less error prone.
+
+
 # Setup script for LEMH stack
 
 I refer to this as my supermegaukulele server. It's the fastest setup I know of so far.
